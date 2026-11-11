@@ -1,0 +1,89 @@
+{
+  "id": "code-library",
+  "name": "Code Library",
+  "version": "0.1.0",
+  "pluginApi": 1,
+  "backend": { "start": "node server.js", "healthPath": "/api/health" },
+  "mcp": {
+    "endpoint": "/api/mcp",
+    "timeoutMs": 30000,
+    "tools": [
+      {
+        "name": "save",
+        "description": "Save a reusable JavaScript module to the Code Library so any later run_code program can run it with cc.code_library.run. Refuses MODULE_EXISTS when the name is taken unless overwrite is true. Write modules per the code-library:library-modules skill.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64, "description": "Module name: lowercase letters, digits and '-', starting with a letter; the file is <name>.mjs." },
+            "description": { "type": "string", "minLength": 1, "maxLength": 1000, "description": "What the module does and what args it takes; shown by list." },
+            "source": { "type": "string", "minLength": 1, "maxLength": 262144, "description": "ES module source; default export async (args, {cc, caller}) => result" },
+            "overwrite": { "type": "boolean", "default": false, "description": "Replace an existing module of this name." }
+          },
+          "required": ["name", "description", "source"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": { "name": { "type": "string" }, "replaced": { "type": "boolean" } },
+          "required": ["name", "replaced"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "list",
+        "description": "List the saved Code Library modules, sorted by name, each with its description. Filter the result in a program.",
+        "inputSchema": { "type": "object", "properties": {} },
+        "outputSchema": {
+          "type": "object",
+          "properties": {
+            "modules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": { "name": { "type": "string" }, "description": { "type": "string" } },
+                "required": ["name", "description"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["modules"],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "describe",
+        "description": "Read a saved Code Library module: its description and its source, for reading or adapting it.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64, "description": "Module name: lowercase letters, digits and '-', starting with a letter; the file is <name>.mjs." }
+          },
+          "required": ["name"]
+        },
+        "outputSchema": {
+          "type": "object",
+          "properties": { "name": { "type": "string" }, "description": { "type": "string" }, "source": { "type": "string" } },
+          "required": ["name", "description", "source"],
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  "claudePlugin": "claude",
+  "runCode": {
+    "module": "src/runCode/index.js",
+    "members": [
+      {
+        "name": "run",
+        "description": "Run a saved Code Library module: imports <name>.mjs from the library, calls its default export with (args, {cc, caller}) and returns the result unchanged — any value, including a live object. Write and save modules per the `code-library:library-modules` skill. Usage: `const out = await cc.code_library.run({ name: 'pr-digest', args: { project: 'x' } });` Errors carry `code`: MODULE_UNKNOWN, MODULE_LOAD_FAILED, MODULE_NOT_FUNCTION, LIBRARY_UNAVAILABLE; the module's own throws pass through unchanged.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "maxLength": 64, "description": "Module name: lowercase letters, digits and '-', starting with a letter; the file is <name>.mjs." },
+            "args": { "type": "object", "description": "Passed to the module's default export as its first argument; default {}" }
+          },
+          "required": ["name"]
+        }
+      }
+    ]
+  }
+}
