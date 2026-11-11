@@ -98,3 +98,13 @@ test('no .tmp left behind; files are mode 0600', async () => {
   assert.deepEqual(fs.readdirSync(dir).sort(), ['pr-digest.json', 'pr-digest.mjs']);
   for (const f of fs.readdirSync(dir)) assert.equal(fs.statSync(path.join(dir, f)).mode & 0o777, 0o600);
 });
+
+// Invariant: the description sidecar is written before the module, so a save that fails at the module write has already stored the sidecar and list never sees a module without one.
+test('sidecar is written before the module', async () => {
+  const { lib, dir } = setup();
+  // A directory where the module file belongs makes the module write (rename) fail, after the sidecar write.
+  fs.mkdirSync(path.join(dir, 'pr-digest.mjs'));
+  await assert.rejects(lib.save(mod({ overwrite: true })));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'pr-digest.json'), 'utf8')), { description: 'digest of PRs' });
+  assert.ok(!fs.readdirSync(dir).some((f) => f.endsWith('.tmp')));
+});

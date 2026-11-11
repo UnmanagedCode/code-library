@@ -35,7 +35,8 @@ export function createLibrary({ dir, log = console }) {
       await fs.promises.writeFile(tmp, text, { mode: 0o600 });
       await fs.promises.rename(tmp, file);
     } catch (e) {
-      await fs.promises.rm(tmp, { force: true });
+      // Best-effort: a cleanup failure must not replace the write error.
+      await fs.promises.rm(tmp, { force: true }).catch(() => {});
       throw e;
     }
   }
