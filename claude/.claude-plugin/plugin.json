@@ -1,0 +1,5 @@
+{
+  "name": "code-library",
+  "version": "0.1.0",
+  "description": "Save reusable JavaScript modules once and run them from any run_code program with the Code Library tools."
+}
